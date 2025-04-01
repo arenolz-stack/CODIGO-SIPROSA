@@ -1,17 +1,17 @@
 # pages/incidentes.py
 
 import dash
-from dash import dcc, html, Input, Output, callback, State, no_update, ctx # Importar ctx
+from dash import dcc, html, Input, Output, callback, State, no_update, ctx  # Importar ctx
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-from datetime import datetime, timedelta, time, date # Importar date
+from datetime import datetime, timedelta, time, date  # Importar date
 import numpy as np
-import traceback # Importar traceback para imprimir errores detallados
+import traceback  # Importar traceback para imprimir errores detallados
 
 # --- Constantes Específicas de Incidentes (Verificar nombres exactos) ---
-CSV_FILE = 'RESPONSES_SIPROSA.csv' # Usar el archivo CSV como referencia para nombres
+CSV_FILE = 'RESPONSES_SIPROSA.csv'  # Usar el archivo CSV como referencia para nombres
 COLUMNA_TIMESTAMP = 'Timestamp'
 COLUMNA_EVENTO = 'TIPO DE EVENTO A REGISTRAR'
 # Incidentes
@@ -20,7 +20,7 @@ COLUMNA_HORA_INI_INCID = 'HORA DE INICIO DEL INCIDENTE o PARADA'
 COLUMNA_HORA_FIN_INCID = 'HORA DE FIN DEL INCIDENTE o PARADA'
 COLUMNA_DESC_INCID = 'DESCRIPCIÓN DEL INCIDENTE O PARADA'
 COLUMNA_ACCIONES_INCID = 'ACCIONES CORRECTIVAS'
-COLUMNA_MAQUINA_INCID = 'MAQUINA ASOCIADA AL INCIDENTE O PARADA' # Importante para filtrar
+COLUMNA_MAQUINA_INCID = 'MAQUINA ASOCIADA AL INCIDENTE O PARADA'  # Importante para filtrar
 VALOR_INCIDENTES = 'Incidentes y Paradas'
 # Producción (para gráfico combinado Y MODAL)
 COLUMNA_FECHA_PROD = 'FECHA DE LA PRODUCCIÓN'
@@ -55,8 +55,8 @@ def calcular_duracion(inicio_str, fin_str, fecha_str):
             inicio_dt = datetime.combine(fecha, pd.to_datetime(inicio_str, format='%I:%M %p').time())
             fin_dt = datetime.combine(fecha, pd.to_datetime(fin_str, format='%I:%M %p').time())
         except ValueError:
-             inicio_dt = datetime.combine(fecha, pd.to_datetime(inicio_str, format='%H:%M').time())
-             fin_dt = datetime.combine(fecha, pd.to_datetime(fin_str, format='%H:%M').time())
+            inicio_dt = datetime.combine(fecha, pd.to_datetime(inicio_str, format='%H:%M').time())
+            fin_dt = datetime.combine(fecha, pd.to_datetime(fin_str, format='%H:%M').time())
         if fin_dt < inicio_dt:
             fin_dt += timedelta(days=1)
         duracion = (fin_dt - inicio_dt).total_seconds() / 60
@@ -66,11 +66,15 @@ def calcular_duracion(inicio_str, fin_str, fecha_str):
 
 def parse_time_robust(time_str):
     """Intenta parsear formatos de hora comunes."""
-    if pd.isna(time_str): return None
-    try: return pd.to_datetime(time_str, format='%I:%M %p').time()
+    if pd.isna(time_str):
+        return None
+    try:
+        return pd.to_datetime(time_str, format='%I:%M %p').time()
     except ValueError:
-        try: return pd.to_datetime(time_str, format='%H:%M').time()
-        except ValueError: return None
+        try:
+            return pd.to_datetime(time_str, format='%H:%M').time()
+        except ValueError:
+            return None
 
 # --- Layout Helper ---
 def layout():
@@ -88,7 +92,6 @@ def layout():
             ])), width=12, md=6, className="mb-3"),
         ], className="align-items-stretch"),
         dbc.Row([
-            # Añadir clear_on_unhover=True al gráfico de frecuencia
             dbc.Col(dbc.Card(dbc.Spinner(dcc.Graph(id='incid-grafico-frecuencia', config={'displayModeBar': False}, clear_on_unhover=True))), width=12, md=6, className="mb-3"),
             dbc.Col(dbc.Card([
                  dbc.CardHeader("Detalle de Incidentes Filtrados"),
@@ -112,7 +115,6 @@ def layout():
         ], id="incid-modal-detalle-dia", size="lg", is_open=False, scrollable=True),
     ], fluid=True, className="dbc mt-4")
 
-
 # --- Callbacks ---
 
 # Callback para inicializar controles de esta página
@@ -125,10 +127,9 @@ def layout():
     Output('incid-slider-fechas', 'max'),
     Output('incid-slider-fechas', 'value'),
     Output('incid-slider-fechas', 'disabled'),
-    Input('store-main-data', 'data') # Disparado por el store
+    Input('store-main-data', 'data')  # Disparado por el store
 )
 def inicializar_controles_incidentes(data_json):
-    # (Sin cambios en esta función)
     if not data_json:
         default_slider = [0, 1, [0, 1], True]
         default_maq_opts = [{'label': VALOR_TODAS, 'value': VALOR_TODAS}]
@@ -137,13 +138,16 @@ def inicializar_controles_incidentes(data_json):
         df = pd.read_json(data_json, orient='split')
         date_cols = [COLUMNA_TIMESTAMP, COLUMNA_FECHA_PROD, COLUMNA_FECHA_MANT, COLUMNA_FECHA_INCID]
         for col in date_cols:
-            if col in df.columns: df[col] = pd.to_datetime(df[col], errors='coerce')
-        if COLUMNA_CANTIDAD in df.columns: df[COLUMNA_CANTIDAD] = pd.to_numeric(df[COLUMNA_CANTIDAD], errors='coerce')
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+        if COLUMNA_CANTIDAD in df.columns:
+            df[COLUMNA_CANTIDAD] = pd.to_numeric(df[COLUMNA_CANTIDAD], errors='coerce')
 
         maq_cols = [COLUMNA_MAQUINA_PROD, COLUMNA_MAQUINA_MANT, COLUMNA_MAQUINA_INCID]
         all_maquinas = set()
         for col in maq_cols:
-            if col in df.columns: all_maquinas.update(df[col].dropna().unique())
+            if col in df.columns:
+                all_maquinas.update(df[col].dropna().unique())
         lista_maquinas_sorted = sorted(list(all_maquinas))
         opciones_maquina_general = [{'label': VALOR_TODAS, 'value': VALOR_TODAS}] + [{'label': maq, 'value': maq} for maq in lista_maquinas_sorted]
         opciones_maquina_especifica = [{'label': maq, 'value': maq} for maq in lista_maquinas_sorted]
@@ -151,15 +155,21 @@ def inicializar_controles_incidentes(data_json):
 
         fechas_incidentes = df[COLUMNA_FECHA_INCID].dropna() if COLUMNA_FECHA_INCID in df.columns else pd.Series(dtype='datetime64[ns]')
         if not fechas_incidentes.empty:
-            min_fecha = fechas_incidentes.min(); max_fecha = fechas_incidentes.max()
-            slider_min = min_fecha.toordinal(); slider_max = max_fecha.toordinal()
-            slider_value = [slider_min, slider_max]; slider_disabled = False
+            min_fecha = fechas_incidentes.min()
+            max_fecha = fechas_incidentes.max()
+            slider_min = min_fecha.toordinal()
+            slider_max = max_fecha.toordinal()
+            slider_value = [slider_min, slider_max]
+            slider_disabled = False
         else:
             fechas_timestamp = df[COLUMNA_TIMESTAMP].dropna() if COLUMNA_TIMESTAMP in df.columns else pd.Series(dtype='datetime64[ns]')
             if not fechas_timestamp.empty:
-                min_fecha = fechas_timestamp.min(); max_fecha = fechas_timestamp.max()
-                slider_min = min_fecha.toordinal(); slider_max = max_fecha.toordinal()
-                slider_value = [slider_min, slider_max]; slider_disabled = False
+                min_fecha = fechas_timestamp.min()
+                max_fecha = fechas_timestamp.max()
+                slider_min = min_fecha.toordinal()
+                slider_max = max_fecha.toordinal()
+                slider_value = [slider_min, slider_max]
+                slider_disabled = False
             else:
                 slider_min, slider_max, slider_value, slider_disabled = 0, 1, [0, 1], True
 
@@ -174,18 +184,16 @@ def inicializar_controles_incidentes(data_json):
         return default_maq_opts, VALOR_TODAS, [], None, default_slider[0], default_slider[1], default_slider[2], default_slider[3]
 
 # Callback para actualizar gráficos y tabla general de incidentes
-# AHORA TAMBIÉN ESCUCHA LOS CLICS DEL GRÁFICO DE FRECUENCIA
 @callback(
     Output('incid-grafico-frecuencia', 'figure'),
     Output('incid-tabla-detalles', 'children'),
     Output('incid-output-fechas', 'children'),
     Input('incid-slider-fechas', 'value'),
     Input('incid-dropdown-maquina-general', 'value'),
-    Input('incid-grafico-frecuencia', 'clickData'), # Nuevo Input
+    Input('incid-grafico-frecuencia', 'clickData'),
     State('store-main-data', 'data')
 )
-def update_incidentes_generales(rango_fechas_slider, maquina_seleccionada, clickData, data_json): # Añadir clickData
-    # Identificar qué input disparó el callback
+def update_incidentes_generales(rango_fechas_slider, maquina_seleccionada, clickData, data_json):
     trigger_id = ctx.triggered_id if ctx.triggered else 'N/A'
     print(f"\n--- update_incidentes_generales triggered by: {trigger_id} ---")
 
@@ -195,7 +203,8 @@ def update_incidentes_generales(rango_fechas_slider, maquina_seleccionada, click
         df_original = pd.read_json(data_json, orient='split')
         date_cols = [COLUMNA_TIMESTAMP, COLUMNA_FECHA_PROD, COLUMNA_FECHA_MANT, COLUMNA_FECHA_INCID]
         for col in date_cols:
-            if col in df_original.columns: df_original[col] = pd.to_datetime(df_original[col], errors='coerce')
+            if col in df_original.columns:
+                df_original[col] = pd.to_datetime(df_original[col], errors='coerce')
         if COLUMNA_FECHA_INCID not in df_original.columns:
              return px.bar(title=f"Error: Falta columna '{COLUMNA_FECHA_INCID}'"), html.Div(f"Error: Falta columna '{COLUMNA_FECHA_INCID}'"), "Error"
         df_incidentes = df_original[df_original[COLUMNA_FECHA_INCID].notna()].copy()
@@ -204,8 +213,7 @@ def update_incidentes_generales(rango_fechas_slider, maquina_seleccionada, click
         traceback.print_exc()
         return px.bar(title="Error al cargar datos"), html.Div("Error al cargar datos."), "Error"
 
-    # --- Filtrado por Fecha y Máquina ---
-    df_filtrado_base = pd.DataFrame(columns=df_incidentes.columns) # DataFrame vacío por defecto
+    df_filtrado_base = pd.DataFrame(columns=df_incidentes.columns)
     texto_fechas_slider = "..."
     try:
         fecha_inicio_dt = pd.Timestamp.fromordinal(rango_fechas_slider[0])
@@ -219,14 +227,12 @@ def update_incidentes_generales(rango_fechas_slider, maquina_seleccionada, click
              if COLUMNA_MAQUINA_INCID in df_filtrado_base.columns:
                   df_filtrado_base = df_filtrado_base[df_filtrado_base[COLUMNA_MAQUINA_INCID] == maquina_seleccionada].copy()
              else:
-                  df_filtrado_base = pd.DataFrame(columns=df_incidentes.columns) # Vacío si falta columna máquina
+                  df_filtrado_base = pd.DataFrame(columns=df_incidentes.columns)
     except Exception as e:
         print(f"!!!!!! ERROR durante el filtrado base: {e}")
         traceback.print_exc()
         return px.bar(title="Error en filtros"), html.Div("Error al aplicar filtros."), "Error"
 
-    # --- Generación de Gráfico de Frecuencia ---
-    # (Esta lógica no cambia, se basa en df_filtrado_base)
     fig_frecuencia = px.bar(title="No hay incidentes en el período/máquina seleccionada")
     fig_frecuencia.update_layout(height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     if not df_filtrado_base.empty:
@@ -239,26 +245,22 @@ def update_incidentes_generales(rango_fechas_slider, maquina_seleccionada, click
         fig_frecuencia.update_layout(height=400, title_x=0.5, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig_frecuencia.update_traces(marker_color='#FF6347')
 
-    # --- Filtrado Adicional para la Tabla si hubo Click ---
-    df_para_tabla = df_filtrado_base.copy() # Por defecto, mostrar todo lo filtrado
+    df_para_tabla = df_filtrado_base.copy()
     clicked_date = None
 
-    # Solo filtrar si el trigger fue el gráfico Y hay clickData
     if trigger_id == 'incid-grafico-frecuencia' and clickData:
         try:
             clicked_date_str = clickData['points'][0]['x']
-            # px.bar devuelve la fecha como string 'YYYY-MM-DD'
             clicked_date = datetime.strptime(clicked_date_str, '%Y-%m-%d').date()
             print(f"   Click detectado en gráfico. Fecha clickeada: {clicked_date}")
             df_para_tabla = df_filtrado_base[df_filtrado_base[COLUMNA_FECHA_INCID].dt.date == clicked_date].copy()
             print(f"   df_para_tabla (después de click) shape: {df_para_tabla.shape}")
         except (KeyError, IndexError, ValueError, TypeError) as e:
             print(f"   WARN: No se pudo extraer la fecha del clickData: {e}. Mostrando tabla sin filtro de click.")
-            # Si hay error extrayendo, no filtramos por click, usamos df_filtrado_base
 
-    # --- Generación de Tabla Detallada ---
-    # (Usa df_para_tabla, que puede estar filtrado por click o no)
-    tabla_html = html.Div(f"No hay detalles de incidentes para mostrar{f' para la fecha {clicked_date.strftime("%d/%m/%Y")}' if clicked_date else ''}.")
+    # Separar la parte condicional de la f-string
+    date_str = f" para la fecha {clicked_date.strftime('%d/%m/%Y')}" if clicked_date else ""
+    tabla_html = html.Div(f"No hay detalles de incidentes para mostrar{date_str}.")
     if not df_para_tabla.empty:
         if COLUMNA_HORA_INI_INCID in df_para_tabla.columns and COLUMNA_HORA_FIN_INCID in df_para_tabla.columns:
             df_para_tabla['Duración (min)'] = df_para_tabla.apply(
@@ -276,27 +278,14 @@ def update_incidentes_generales(rango_fechas_slider, maquina_seleccionada, click
         df_display.rename(columns=columnas_existentes, inplace=True)
         if 'Fecha' in df_display.columns:
              df_display['Fecha'] = pd.to_datetime(df_display['Fecha']).dt.strftime('%d/%m/%Y')
-
-        # Ordenar tabla (puede ser útil si hay varios incidentes en el día clickeado)
-        # Si no se hizo click, ya debería estar más o menos ordenado por el filtrado base
-        if 'Fecha' in df_display.columns:
-            sort_col = 'Fecha'
-            # Podríamos añadir orden por hora si la columna existe y calculamos duración
-            # if 'Duración (min)' in df_display.columns and COLUMNA_HORA_INI_INCID in df_para_tabla.columns:
-            #    df_display['_hora_temp'] = pd.to_datetime(df_para_tabla[COLUMNA_HORA_INI_INCID], errors='coerce').dt.time
-            #    sort_col = ['Fecha', '_hora_temp']
-
-            try:
-                df_display = df_display.sort_values(by=sort_col)
-                # if '_hora_temp' in df_display.columns: df_display.drop(columns=['_hora_temp'], inplace=True)
-            except Exception as e_sort:
+        try:
+            df_display = df_display.sort_values(by='Fecha')
+        except Exception as e_sort:
                  print(f"WARN: Error al ordenar tabla: {e_sort}")
-
 
         tabla_html = dbc.Table.from_dataframe(df_display, striped=True, bordered=True, hover=True, responsive=True, class_name="align-middle small")
 
     return fig_frecuencia, tabla_html, texto_fechas_slider
-
 
 # Callback para actualizar el gráfico combinado por máquina
 @callback(
@@ -306,7 +295,6 @@ def update_incidentes_generales(rango_fechas_slider, maquina_seleccionada, click
     State('store-main-data', 'data')
 )
 def update_grafico_combinado_maquina(rango_fechas_slider, maquina_seleccionada, data_json):
-    # (Sin cambios en esta función)
     if not data_json or not maquina_seleccionada or rango_fechas_slider is None:
         fig = go.Figure()
         fig.update_layout(title="Seleccione una máquina y rango de fechas", title_x=0.5, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
@@ -315,8 +303,10 @@ def update_grafico_combinado_maquina(rango_fechas_slider, maquina_seleccionada, 
         df_original = pd.read_json(data_json, orient='split')
         date_cols = [COLUMNA_TIMESTAMP, COLUMNA_FECHA_PROD, COLUMNA_FECHA_MANT, COLUMNA_FECHA_INCID]
         for col in date_cols:
-            if col in df_original.columns: df_original[col] = pd.to_datetime(df_original[col], errors='coerce')
-        if COLUMNA_CANTIDAD in df_original.columns: df_original[COLUMNA_CANTIDAD] = pd.to_numeric(df_original[COLUMNA_CANTIDAD], errors='coerce')
+            if col in df_original.columns:
+                df_original[col] = pd.to_datetime(df_original[col], errors='coerce')
+        if COLUMNA_CANTIDAD in df_original.columns:
+            df_original[COLUMNA_CANTIDAD] = pd.to_numeric(df_original[COLUMNA_CANTIDAD], errors='coerce')
 
         fecha_inicio_dt = pd.Timestamp.fromordinal(rango_fechas_slider[0])
         fecha_fin_dt = pd.Timestamp.fromordinal(rango_fechas_slider[1])
@@ -396,19 +386,18 @@ def update_grafico_combinado_maquina(rango_fechas_slider, maquina_seleccionada, 
                   marker=dict(color='orange', size=10, symbol='triangle-up'), yaxis='y2'
              ))
 
-        # --- Configuración del Layout (CORREGIDA) ---
         fig.update_layout(
             title=f"Producción vs. Eventos - Máquina: {maquina_seleccionada}",
             title_x=0.5,
             xaxis_title="Fecha",
             yaxis=dict(
-                title=dict( text=f"Producción ({unidad_prod})", font=dict(color="green") ),
+                title=dict(text=f"Producción ({unidad_prod})", font=dict(color="green")),
                 tickfont=dict(color="green"),
                 side='left',
                 rangemode='tozero'
             ),
             yaxis2=dict(
-                title=dict( text="Eventos", font=dict(color="gray") ),
+                title=dict(text="Eventos", font=dict(color="gray")),
                 tickfont=dict(color="gray"),
                 overlaying='y',
                 side='right',
@@ -446,17 +435,18 @@ def update_grafico_combinado_maquina(rango_fechas_slider, maquina_seleccionada, 
     prevent_initial_call=True
 )
 def mostrar_resumen_diario_modal(clickData, maquina_seleccionada, data_json):
-    # (Sin cambios en esta función)
     if clickData is None or not maquina_seleccionada or not data_json:
-        raise PreventUpdate
+        raise dash.exceptions.PreventUpdate
     try:
         fecha_click_str = clickData['points'][0]['x']
         fecha_click = pd.to_datetime(fecha_click_str).normalize()
         df_original = pd.read_json(data_json, orient='split')
         date_cols = [COLUMNA_TIMESTAMP, COLUMNA_FECHA_PROD, COLUMNA_FECHA_MANT, COLUMNA_FECHA_INCID]
         for col in date_cols:
-            if col in df_original.columns: df_original[col] = pd.to_datetime(df_original[col], errors='coerce')
-        if COLUMNA_CANTIDAD in df_original.columns: df_original[COLUMNA_CANTIDAD] = pd.to_numeric(df_original[COLUMNA_CANTIDAD], errors='coerce')
+            if col in df_original.columns:
+                df_original[col] = pd.to_datetime(df_original[col], errors='coerce')
+        if COLUMNA_CANTIDAD in df_original.columns:
+            df_original[COLUMNA_CANTIDAD] = pd.to_numeric(df_original[COLUMNA_CANTIDAD], errors='coerce')
 
         resumen_elementos = []
         modal_titulo = f"Resumen del {fecha_click.strftime('%d/%m/%Y')} - Máquina: {maquina_seleccionada}"
@@ -493,8 +483,10 @@ def mostrar_resumen_diario_modal(clickData, maquina_seleccionada, data_json):
         if not df_incid_dia.empty:
             resumen_elementos.append(html.H5("Incidentes/Paradas", className="mt-3"))
             for idx, row in df_incid_dia.iterrows():
-                hora_ini = row.get(COLUMNA_HORA_INI_INCID, 'N/A'); hora_fin = row.get(COLUMNA_HORA_FIN_INCID, 'N/A')
-                desc = row.get(COLUMNA_DESC_INCID, 'Sin descripción'); acc = row.get(COLUMNA_ACCIONES_INCID, 'N/A')
+                hora_ini = row.get(COLUMNA_HORA_INI_INCID, 'N/A')
+                hora_fin = row.get(COLUMNA_HORA_FIN_INCID, 'N/A')
+                desc = row.get(COLUMNA_DESC_INCID, 'Sin descripción')
+                acc = row.get(COLUMNA_ACCIONES_INCID, 'N/A')
                 duracion = calcular_duracion(hora_ini, hora_fin, fecha_click)
                 dur_str = f"({int(duracion)} min)" if duracion is not None else ""
                 incid_info = [ html.Strong(f"- {hora_ini} a {hora_fin} {dur_str}: "), f"{desc}", html.Br(), html.Em(f"  Acciones: {acc}") if pd.notna(acc) else "" ]
@@ -516,7 +508,8 @@ def mostrar_resumen_diario_modal(clickData, maquina_seleccionada, data_json):
         if not df_mant_dia.empty:
             resumen_elementos.append(html.H5("Mantenimiento", className="mt-3"))
             for idx, row in df_mant_dia.iterrows():
-                 tipo = row.get(COLUMNA_TIPO_MANT, 'N/A'); desc_mant = row.get('DESCRIPCIÓN DEL MANTENIMIENTO REALIZADO', 'Sin descripción')
+                 tipo = row.get(COLUMNA_TIPO_MANT, 'N/A')
+                 desc_mant = row.get('DESCRIPCIÓN DEL MANTENIMIENTO REALIZADO', 'Sin descripción')
                  mant_info = f"- Tipo: {tipo} | Descripción: {desc_mant}"
                  resumen_elementos.append(html.P(mant_info))
         else:
