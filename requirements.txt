@@ -3,3 +3,5 @@ dash_bootstrap_components
 plotly
 pandas
 gunicorn
+wordcloud
+matplotlib
